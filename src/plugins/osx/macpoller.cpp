@@ -317,8 +317,8 @@ int64_t OSXIdlePoller::poll(bool allowEmit, int64_t &idle)
                 if (i < m_maxTimeout) {
                     m_nextTimeout = iter[1];
                 }
-                qDebug() << "timeout" << i << "hit at idle" << offsetIdle << "(offset,real idle=="
-                    << m_idleOffset << idle << "); next timeout:" << m_nextTimeout;
+//                 qDebug() << "timeout" << i << "hit at idle" << offsetIdle << "(offset,real idle=="
+//                     << m_idleOffset << idle << "); next timeout:" << m_nextTimeout;
                 emit timeoutReached(i);
                 return offsetIdle;
             }

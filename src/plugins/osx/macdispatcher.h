@@ -66,20 +66,6 @@ public:
     bool setUpPoller();
     void unloadPoller();
 
-    /**
-     * switch the idle time polling engine to the specified interval in milliseconds
-     * or back to the default adaptive engine.
-     * @param msecs : the desired polling interval in milliseconds, or -1 for the default
-     * algoritm. @see QTimer for the meaning of msec=0 .
-     * @returns true if the change to a fixed interval was successful.
-     */
-    bool setPollerResolution(int msecs);
-    /**
-     * query the current polling interval, which will be -1 for the default adaptive interval
-     * @returns true (this class supports changing the interval)
-     */
-    bool getPollerResolution(int &msecs);
-
 public Q_SLOTS:
     void addTimeout(int nextTimeout);
     void removeTimeout(int nextTimeout);
@@ -137,7 +123,6 @@ private:
     dispatch_source_t m_idleDispatch;
     bool m_idleDispatchRunning;
     dispatch_time_t timerSet;
-    int m_pollResolution;
     int m_minTimeout,
         m_maxTimeout,
         m_NTimeouts;

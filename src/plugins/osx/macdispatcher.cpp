@@ -38,15 +38,7 @@ static UpdateSystemActivityPtr updateSystemActivity;
 class DispatchCallback
 {
 public:
-    static void idleHandler(void *ref)
-    {
-        OSXIdleDispatcher *poller = static_cast<OSXIdleDispatcher*>(ref);
-        int64_t elapsed = dispatch_time(DISPATCH_TIME_NOW, 0ll) - poller->timerSet;
-        if (elapsed > poller->m_nextTimeout * 100000ll) {
-            fprintf( stderr, "idleHandler called after %gms\n", elapsed / 1000000.0 ); fflush(stderr);
-            poller->checkForIdleFunction();
-        }
-    }
+    static void idleHandler(void *ref);
 };
 
 OSXIdleDispatcher::OSXIdleDispatcher(QObject *parent)
@@ -59,7 +51,6 @@ OSXIdleDispatcher::OSXIdleDispatcher(QObject *parent)
     , m_lastTimeout(-1)
     , m_nextTimeout(-1)
     , m_NTimeouts(0)
-    , m_pollResolution(-1)
     , m_catch(false)
     , m_idleDispatch(0)
     , m_nativeGrabber(0)
@@ -165,25 +156,6 @@ bool OSXIdleDispatcher::setUpPoller()
     return true;
 }
 
-bool OSXIdleDispatcher::setPollerResolution(int msecs)
-{
-    if (msecs >= 0) {
-        m_pollResolution = msecs;
-        return true;
-    } else {
-        m_pollResolution = -1;
-        return true;
-    }
-    return false;
-}
-
-bool OSXIdleDispatcher::getPollerResolution(int &msecs)
-{
-    msecs = m_pollResolution;
-    // this plugin supports setting the polling resolution so we return true
-    return true;
-}
-
 QList<int> OSXIdleDispatcher::timeouts() const
 {
     return m_timeouts;
@@ -229,6 +201,14 @@ void OSXIdleDispatcher::removeTimeout(int timeout)
     poll(false);
 }
 
+void DispatchCallback::idleHandler(void *ref)
+{
+    OSXIdleDispatcher *poller = static_cast<OSXIdleDispatcher*>(ref);
+    int64_t elapsed = dispatch_time(DISPATCH_TIME_NOW, 0ll) - poller->timerSet;
+    fprintf( stderr, "idleHandler called after %gms\n", elapsed / 1000000.0 ); fflush(stderr);
+    poller->checkForIdleFunction();
+}
+
 void OSXIdleDispatcher::kickTimer(int64_t idle)
 {
     if (!m_NTimeouts) {
@@ -242,14 +222,15 @@ void OSXIdleDispatcher::kickTimer(int64_t idle)
         // NB: to minimise CPU load wake-ups to the utmost extent, we could consider an
         // option to set the interval to "remainingTime - 1ms" as long as that is >= 1ms,
         // but then the question becomes how to continue polling from there.
-        if (idle < currentMinTimeout || m_pollResolution >= 0) {
-//             int interval = (m_pollResolution < 0)? (currentMinTimeout - idle) / 2 : m_pollResolution;
-            int interval = (m_pollResolution < 0)? (currentMinTimeout - idle) : m_pollResolution;
+        if (idle < currentMinTimeout) {
+            int interval = currentMinTimeout - idle;
 //             fprintf( stderr, "idleTimer interval set to (%lld-%lld)/2=%d, next timeout=%d\n",
 //                      currentMinTimeout, idle, interval, m_nextTimeout);
             if (m_idleDispatch) {
                 timerSet = dispatch_time(DISPATCH_TIME_NOW, 0ll);
-                dispatch_source_set_timer(m_idleDispatch, timerSet, interval * 1000000ull, interval * 10000ull);
+                int64_t delta = interval * 1000000ull;
+                // set the source to dispatch first when we want to read out the idle time (= ballistically)
+                dispatch_source_set_timer(m_idleDispatch, timerSet + delta, delta, interval * 10000ull);
                 if (!m_idleDispatchRunning) {
                     dispatch_resume(m_idleDispatch);
                     m_idleDispatchRunning = true;
