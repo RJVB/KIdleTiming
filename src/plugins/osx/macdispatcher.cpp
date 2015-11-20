@@ -233,7 +233,7 @@ void OSXIdleDispatcher::kickTimer(int64_t idle)
                 timerSet = dispatch_time(DISPATCH_TIME_NOW, 0ll);
                 int64_t delta = interval * 1000000ull;
                 // set the source to dispatch first when we want to read out the idle time (= ballistically)
-                dispatch_source_set_timer(m_idleDispatch, timerSet + delta, delta, interval * 10000ull);
+                dispatch_source_set_timer(m_idleDispatch, timerSet + delta, DISPATCH_TIME_FOREVER, interval * 10000ull);
                 if (!m_idleDispatchRunning) {
                     dispatch_resume(m_idleDispatch);
                     m_idleDispatchRunning = true;
