@@ -144,6 +144,9 @@ bool OSXIdleDispatcher::setUpPoller()
         dispatch_source_set_event_handler_f(m_idleDispatch, DispatchCallback::idleHandler);
         dispatch_set_context(m_idleDispatch, this);
         m_idleDispatchRunning = false;
+    } else {
+        qCWarning(KIDLETIME) << "failure creating a GCD timer source";
+        return false;
     }
 
     if (!additionalSetUp()) {
